@@ -1,0 +1,16 @@
+CompileFlags:
+  Add:
+    - "-isystem"
+    - "C:\\Users\\suvro\\.platformio\\packages\\toolchain-xtensa-esp32\\xtensa-esp32-elf\\include\\c++\\8.4.0"
+    - "-isystem"
+    - "C:\\Users\\suvro\\.platformio\\packages\\toolchain-xtensa-esp32\\xtensa-esp32-elf\\include\\c++\\8.4.0\\xtensa-esp32-elf"
+    - "-isystem"
+    - "C:\\Users\\suvro\\.platformio\\packages\\toolchain-xtensa-esp32\\xtensa-esp32-elf\\include\\c++\\8.4.0\\backward"
+    - "-isystem"
+    - "C:\\Users\\suvro\\.platformio\\packages\\toolchain-xtensa-esp32\\lib\\gcc\\xtensa-esp32-elf\\8.4.0\\include"
+    - "-isystem"
+    - "C:\\Users\\suvro\\.platformio\\packages\\toolchain-xtensa-esp32\\lib\\gcc\\xtensa-esp32-elf\\8.4.0\\include-fixed"
+    - "-isystem"
+    - "C:\\Users\\suvro\\.platformio\\packages\\toolchain-xtensa-esp32\\xtensa-esp32-elf\\sys-include"
+    - "-isystem"
+    - "C:\\Users\\suvro\\.platformio\\packages\\toolchain-xtensa-esp32\\xtensa-esp32-elf\\include"

@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="GridZero: Real-time autonomous rescue rover monitoring dashboard with sensor fusion, victim detection, and remote control.">
+    <title>GridZero — Autonomous Rescue Dashboard</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="css/dashboard.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    
+    <!-- Socket.IO Client -->
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- HEADER                                                                  -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<header class="header" id="header">
+    <div class="header-left">
+        <div class="logo">
+            <div class="logo-icon">🤖</div>
+            <div>
+                <div class="logo-text">GRIDZERO</div>
+                <div class="logo-subtitle">Autonomous Rescue System</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="header-center">
+        <!-- Rover Connection Status -->
+        <div class="status-badge offline" id="roverStatusBadge">
+            <span class="status-dot"></span>
+            <span id="roverStatusText">OFFLINE</span>
+        </div>
+
+        <!-- Battery -->
+        <div class="battery-widget" id="batteryWidget">
+            <div class="battery-icon-wrapper">
+                <div class="battery-fill" id="batteryFill" style="width: 0%; background: var(--accent-red);"></div>
+            </div>
+            <span class="battery-text" id="batteryText">---%</span>
+        </div>
+
+        <!-- Wi-Fi Signal -->
+        <div class="status-badge" id="wifiBadge">
+            <span>📶</span>
+            <span id="wifiRssi">--- dBm</span>
+        </div>
+
+        <!-- AI Vision Status -->
+        <div class="status-badge" id="visionBadge" title="Camera AI Vision Detector">
+            <span>🧠</span>
+            <span id="visionStatusText">AI OFF</span>
+        </div>
+
+        <!-- Operation Mode -->
+        <div class="status-badge" id="modeBadge">
+            <span>⚙️</span>
+            <span id="modeText">IDLE</span>
+        </div>
+    </div>
+
+    <div class="header-right">
+        <div class="header-clock" id="headerClock">--:--:--</div>
+        
+        <!-- Simulator Controls -->
+        <button class="btn btn-primary" id="btnStartSim" onclick="toggleSimulator()">
+            ▶ Simulator
+        </button>
+    </div>
+</header>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- MISSION STATUS BAR                                                      -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="dashboard" style="padding-bottom: 0;">
+    <div class="mission-bar" id="missionBar">
+        <div style="display:flex; align-items:center; gap:10px;">
+            <span style="font-size:1.2rem;">🎯</span>
+            <div>
+                <div style="font-family:var(--font-display); font-size:0.8rem; font-weight:600; letter-spacing:1px; color:var(--accent-cyan);" id="missionName">NO ACTIVE MISSION</div>
+                <div style="font-size:0.7rem; color:var(--text-muted);" id="missionCode">Start a mission to begin data collection</div>
+            </div>
+        </div>
+        <div class="mission-divider"></div>
+
+        <div class="mission-stat">
+            <div class="mission-stat-value" id="missionDuration">00:00:00</div>
+            <div class="mission-stat-label">Duration</div>
+        </div>
+        <div class="mission-divider"></div>
+
+        <div class="mission-stat">
+            <div class="mission-stat-value" id="missionReadings">0</div>
+            <div class="mission-stat-label">Readings</div>
+        </div>
+        <div class="mission-divider"></div>
+
+        <div class="mission-stat">
+            <div class="mission-stat-value" id="missionVictims">0</div>
+            <div class="mission-stat-label">Victims</div>
+        </div>
+        <div class="mission-divider"></div>
+
+        <div class="mission-stat">
+            <div class="mission-stat-value" id="missionAlerts">0</div>
+            <div class="mission-stat-label">Alerts</div>
+        </div>
+
+        <div style="margin-left:auto; display:flex; gap:8px;">
+            <button class="btn btn-success" id="btnStartMission" onclick="startMission()">▶ Start</button>
+            <button class="btn btn-danger" id="btnStopMission" onclick="completeMission()" style="display:none;">⏹ End</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- MAIN DASHBOARD GRID                                                     -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="dashboard" id="dashboardGrid">
+
+    <!-- ── THERMAL SENSOR CARD ───────────────────────────────────────── -->
+    <div class="card card-thermal" id="cardThermal">
+        <div class="card-header">
+            <div class="card-title">
+                <span class="card-title-icon">🌡️</span> Thermal Sensor
+            </div>
+            <div class="card-status active" id="thermalStatus">ACTIVE</div>
+        </div>
+
+        <div class="gauge-container">
+            <div class="gauge">
+                <svg viewBox="0 0 120 120">
+                    <circle class="gauge-bg" cx="60" cy="60" r="50"></circle>
+                    <circle class="gauge-fill" id="thermalGauge" cx="60" cy="60" r="50"
+                        stroke="var(--accent-cyan)" stroke-dasharray="314" stroke-dashoffset="314"></circle>
+                </svg>
+                <div class="gauge-center">
+                    <div class="gauge-value" id="thermalObjectTemp" style="color:var(--accent-cyan);">--.-</div>
+                    <div class="gauge-label">°C Object</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="sensor-row">
+            <span class="sensor-label">🔵 Ambient</span>
+            <span class="sensor-value" id="thermalAmbient">--.- °C</span>
+        </div>
+        <div class="sensor-row">
+            <span class="sensor-label">🔴 Object</span>
+            <span class="sensor-value" id="thermalObject">--.- °C</span>
+        </div>
+        <div class="sensor-row">
+            <span class="sensor-label">📊 Delta (Δ)</span>
+            <span class="sensor-value" id="thermalDelta">--.- °C</span>
+        </div>
+        <div class="sensor-row">
+            <span class="sensor-label">👤 Body Heat?</span>
+            <span class="sensor-value" id="thermalBodyHeat" style="color:var(--text-muted);">N/A</span>
+        </div>
+    </div>
+
+    <!-- ── GAS SENSOR CARD ───────────────────────────────────────────── -->
+    <div class="card card-gas" id="cardGas">
+        <div class="card-header">
+            <div class="card-title">
+                <span class="card-title-icon">💨</span> Gas Sensor (MQ-9)
+            </div>
+            <div class="card-status active" id="gasStatus">SAFE</div>
+        </div>
+
+        <div style="text-align:center; padding:var(--gap-sm) 0;">
+            <div class="big-number green" id="gasHazardDisplay">SAFE</div>
+            <div class="big-number-label">Hazard Level</div>
+        </div>
+
+        <div class="hazard-bar">
+            <div class="hazard-bar-fill safe" id="gasHazardBar"></div>
+        </div>
+
+        <div style="margin-top: var(--gap-md);">
+            <div class="sensor-row">
+                <span class="sensor-label">⚠️ CO (Carbon Monoxide)</span>
+                <span class="sensor-value" id="gasCO">0.00 PPM</span>
+            </div>
+            <div class="sensor-row">
+                <span class="sensor-label">🔥 CH₄ (Methane)</span>
+                <span class="sensor-value" id="gasMethane">0.00 PPM</span>
+            </div>
+            <div class="sensor-row">
+                <span class="sensor-label">💥 LPG (Propane)</span>
+                <span class="sensor-value" id="gasLPG">0.00 PPM</span>
+            </div>
+            <div class="sensor-row">
+                <span class="sensor-label">📊 Raw ADC</span>
+                <span class="sensor-value" id="gasRawADC">0</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── ULTRASONIC SENSOR CARD ─────────────────────────────────────── -->
+    <div class="card card-ultrasonic" id="cardUltrasonic">
+        <div class="card-header">
+            <div class="card-title">
+                <span class="card-title-icon">📡</span> Ultrasonic (HC-SR04)
+            </div>
+            <div class="card-status active" id="ultraStatus">CLEAR</div>
+        </div>
+
+        <!-- Object Alert Banners -->
+        <div class="ultra-alert-banner front-alert hidden" id="frontAlertBanner">
+            <span class="ultra-alert-icon">🚨</span>
+            <div class="ultra-alert-text">
+                <div class="ultra-alert-title">FRONT OBJECT DETECTED</div>
+                <div class="ultra-alert-dist" id="frontAlertDist">-- cm ahead</div>
+            </div>
+        </div>
+        <div class="ultra-alert-banner back-alert hidden" id="backAlertBanner">
+            <span class="ultra-alert-icon">🚨</span>
+            <div class="ultra-alert-text">
+                <div class="ultra-alert-title">BACK OBJECT DETECTED</div>
+                <div class="ultra-alert-dist" id="backAlertDist">-- cm behind</div>
+            </div>
+        </div>
+
+        <!-- Distance Visualizer -->
+        <div class="distance-viz" id="distanceViz">
+            <div class="distance-label" id="distFrontLabel" style="top:6px; left:50%; transform:translateX(-50%);">--- cm</div>
+            <div class="distance-line front" id="distFrontLine" style="height: 60px;"></div>
+            <div class="rover-icon">🤖</div>
+            <div class="distance-line back" id="distBackLine" style="height: 30px;"></div>
+            <div class="distance-label" id="distBackLabel" style="bottom:4px; left:50%; transform:translateX(-50%);">--- cm</div>
+        </div>
+
+        <!-- Distance Rows -->
+        <div class="sensor-row">
+            <span class="sensor-label">⬆️ Front Distance</span>
+            <span class="sensor-value" id="ultraFront">--- cm</span>
+        </div>
+        <div class="sensor-row">
+            <span class="sensor-label">⬇️ Back Distance</span>
+            <span class="sensor-value" id="ultraSide">--- cm</span>
+        </div>
+
+        <!-- Object Alert Status Row -->
+        <div class="sensor-row" id="ultraObstacleRow">
+            <span class="sensor-label">🚧 Object Status</span>
+            <span class="sensor-value" id="ultraObstacle" style="color:var(--accent-green);">🟢 ALL CLEAR</span>
+        </div>
+    </div>
+
+    <!-- ── ALERTS PANEL ──────────────────────────────────────────────── -->
+    <div class="card card-alerts" id="cardAlerts">
+        <div class="card-header">
+            <div class="card-title">
+                <span class="card-title-icon">🔔</span> Alerts
+            </div>
+            <span class="alert-count-badge" id="alertCount">0</span>
+        </div>
+
+        <div style="display:flex; gap:6px; margin-bottom:var(--gap-md);">
+            <button class="btn" onclick="acknowledgeAllAlerts()" style="flex:1; font-size:0.7rem; padding:6px;">✓ ACK ALL</button>
+            <button class="btn" onclick="clearAlertList()" style="flex:1; font-size:0.7rem; padding:6px;">🗑️ CLEAR</button>
+        </div>
+
+        <div class="alert-list" id="alertList">
+            <div class="empty-state">
+                <div class="empty-state-icon">🔕</div>
+                <div class="empty-state-text">No alerts — system is quiet</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── VIDEO FEED CARD ───────────────────────────────────────────── -->
+    <div class="card card-video" id="cardVideo">
+        <div class="card-header">
+            <div class="card-title">
+                <span class="card-title-icon">📷</span> Live Camera Feed (ESP32-CAM)
+            </div>
+            <div class="card-status" id="videoStatus">WAITING</div>
+        </div>
+
+        <div class="video-feed" id="videoFeed">
+            <div class="video-feed-overlay" id="videoOverlay">
+                <div class="icon">📷</div>
+                <div>Camera feed will appear here when ESP32-CAM is connected</div>
+                <div style="margin-top:8px; font-family:var(--font-mono); font-size:0.7rem;">
+                    Stream URL: <span id="camUrl">http://192.168.4.2:81/stream</span>
+                </div>
+            </div>
+            <img id="videoStream" src="" alt="ESP32-CAM Feed" style="display:none;">
+            <div class="video-rec" id="videoRec" style="display:none;">
+                <span style="width:8px;height:8px;background:white;border-radius:50;display:inline-block;"></span>
+                REC
+            </div>
+        </div>
+
+        <!-- AI Vision Detection Status -->
+        <div id="visionDetectionBar" style="display:flex; gap:8px; margin-top:var(--gap-sm); padding:8px 12px; background:rgba(0,240,255,0.05); border:1px solid rgba(0,240,255,0.15); border-radius:var(--radius-sm); align-items:center;">
+            <div style="display:flex; gap:6px; align-items:center; flex:1;">
+                <span style="font-size:0.85rem;">🎥</span>
+                <span style="font-size:0.7rem; color:var(--text-muted);" id="visionCamLabel">Camera AI:</span>
+                <span style="font-size:0.75rem; font-weight:600;" id="visionCamStatus">OFFLINE</span>
+            </div>
+            <div style="width:1px; height:16px; background:var(--glass-border);"></div>
+            <div style="display:flex; gap:6px; align-items:center; flex:1;">
+                <span style="font-size:0.85rem;">🌡️</span>
+                <span style="font-size:0.7rem; color:var(--text-muted);" id="visionThermalLabel">Thermal:</span>
+                <span style="font-size:0.75rem; font-weight:600;" id="visionThermalStatus">---</span>
+            </div>
+            <div style="width:1px; height:16px; background:var(--glass-border);"></div>
+            <div style="display:flex; gap:6px; align-items:center;">
+                <span style="font-size:0.85rem;">🎯</span>
+                <span style="font-size:0.75rem; font-weight:700;" id="visionFusionResult">---</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── LIVE CHARTS CARD ──────────────────────────────────────────── -->
+    <div class="card card-charts" id="cardCharts">
+        <div class="card-header">
+            <div class="card-title">
+                <span class="card-title-icon">📈</span> Live Sensor Graph
+            </div>
+            <div style="display:flex; gap:4px;">
+                <button class="btn" onclick="switchChart('thermal')" id="chartBtnThermal" style="padding:4px 10px; font-size:0.65rem;" >🌡️</button>
+                <button class="btn" onclick="switchChart('gas')" id="chartBtnGas" style="padding:4px 10px; font-size:0.65rem;">💨</button>
+                <button class="btn" onclick="switchChart('distance')" id="chartBtnDist" style="padding:4px 10px; font-size:0.65rem;">📡</button>
+            </div>
+        </div>
+        <div class="chart-container">
+            <canvas id="liveChart"></canvas>
+        </div>
+    </div>
+
+    <!-- ── ROVER CONTROL BOX CARD ────────────────────────────────────── -->
+    <div class="card card-rover" id="cardRover">
+        <div class="card-header">
+            <div class="card-title">
+                <span class="card-title-icon">🎮</span> Rover Control Box
+            </div>
+            <div class="card-status danger" id="roverMasterStatusBadge">STOPPED</div>
+        </div>
+
+        <!-- Rover IP config row -->
+        <div class="rover-ip-row">
+            <label for="roverIpInput">🌐 Rover IP:</label>
+            <input type="text" id="roverIpInput" value="192.168.4.1" placeholder="192.168.4.1" spellcheck="false" autocomplete="off">
+            <span id="roverConnStatus" class="rover-conn-badge offline">OFFLINE</span>
+        </div>
+
+        <!-- Master START / STOP Button -->
+        <div class="master-control-section">
+            <button class="master-start-stop-btn is-stopped" id="btnStartStop" onclick="toggleStartStop()">
+                <span class="btn-icon" id="startStopIcon">&#9654;</span>
+                <span class="btn-text" id="startStopText">START ROVER</span>
+            </button>
+            <div class="master-status-caption locked" id="startStopCaption">
+                🔒 ROVER STOPPED — CONTROLS LOCKED (Click START to Run)
+            </div>
+        </div>
+
+        <!-- 3x3 Tank Control Grid -->
+        <div class="tank-pad-container" id="operatePadContainer">
+            <div class="tank-pad">
+                <button class="tank-btn diag-btn" id="btnFL"       data-cmd="FL" disabled>&#8598;</button>
+                <button class="tank-btn fwd-btn"  id="btnForward"  data-cmd="F"  disabled>&#9650;</button>
+                <button class="tank-btn diag-btn" id="btnFR"       data-cmd="FR" disabled>&#8599;</button>
+
+                <button class="tank-btn side-btn" id="btnLeft"     data-cmd="L"  disabled>&#9664;</button>
+                <button class="tank-btn stop-btn" id="btnStop"     data-cmd="S"  disabled>STOP</button>
+                <button class="tank-btn side-btn" id="btnRight"    data-cmd="R"  disabled>&#9654;</button>
+
+                <button class="tank-btn diag-btn" id="btnBL"       data-cmd="BL" disabled>&#8601;</button>
+                <button class="tank-btn bwd-btn"  id="btnBackward" data-cmd="B"  disabled>&#9660;</button>
+                <button class="tank-btn diag-btn" id="btnBR"       data-cmd="BR" disabled>&#8600;</button>
+            </div>
+            <div class="tank-status-row">
+                <span class="center-state-text locked" id="centerStateText">LOCKED</span>
+            </div>
+        </div>
+
+        <div class="control-box-footer">
+            <span class="footer-hint">&#9000; <strong>W / A / S / D</strong> or <strong>Arrows</strong> to steer | <strong>Space</strong> to STOP</span>
+        </div>
+    </div>
+
+
+    <!-- ── VICTIM DETECTIONS CARD ────────────────────────────────────── -->
+    <div class="card card-victims" id="cardVictims">
+        <div class="card-header">
+            <div class="card-title">
+                <span class="card-title-icon">👥</span> Victim Detections
+            </div>
+            <div class="card-status" id="victimCount">0 FOUND</div>
+        </div>
+
+        <!-- Stats row -->
+        <div style="display:flex; gap:var(--gap-sm); margin-bottom:var(--gap-md);">
+            <div style="flex:1; text-align:center; padding:8px; background:var(--accent-green-dim); border-radius:var(--radius-sm);">
+                <div style="font-family:var(--font-display); font-size:1.2rem; font-weight:700; color:var(--accent-green);" id="victimsAlive">0</div>
+                <div style="font-size:0.6rem; color:var(--text-muted); text-transform:uppercase;">Alive</div>
+            </div>
+            <div style="flex:1; text-align:center; padding:8px; background:var(--accent-red-dim); border-radius:var(--radius-sm);">
+                <div style="font-family:var(--font-display); font-size:1.2rem; font-weight:700; color:var(--accent-red);" id="victimsDeceased">0</div>
+                <div style="font-size:0.6rem; color:var(--text-muted); text-transform:uppercase;">Deceased</div>
+            </div>
+            <div style="flex:1; text-align:center; padding:8px; background:var(--accent-yellow-dim); border-radius:var(--radius-sm);">
+                <div style="font-family:var(--font-display); font-size:1.2rem; font-weight:700; color:var(--accent-yellow);" id="victimsUncertain">0</div>
+                <div style="font-size:0.6rem; color:var(--text-muted); text-transform:uppercase;">Uncertain</div>
+            </div>
+        </div>
+
+        <!-- Victim list -->
+        <div id="victimList" style="max-height:200px; overflow-y:auto;">
+            <div class="empty-state">
+                <div class="empty-state-icon">🔍</div>
+                <div class="empty-state-text">No victims detected yet</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── MISSION LOG CARD ──────────────────────────────────────────── -->
+    <div class="card card-mission" id="cardMission">
+        <div class="card-header">
+            <div class="card-title">
+                <span class="card-title-icon">📋</span> Mission Log
+            </div>
+        </div>
+
+        <div id="missionLog" style="max-height:300px; overflow-y:auto;">
+            <div class="empty-state">
+                <div class="empty-state-icon">📝</div>
+                <div class="empty-state-text">Mission log will appear here</div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- SCRIPTS                                                                 -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<script src="js/app.js"></script>
+
+</body>
+</html>

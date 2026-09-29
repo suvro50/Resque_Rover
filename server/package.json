@@ -1,0 +1,35 @@
+{
+  "name": "gridzero-server",
+  "version": "1.0.0",
+  "description": "GridZero: Autonomous Cyber-Physical Rescue System — Backend Server",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "gridzero",
+    "iot",
+    "rescue",
+    "esp32",
+    "sensor-fusion"
+  ],
+  "author": "Suvrojit Bose Sarthok & Team — UIU CSE",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@tensorflow-models/coco-ssd": "^2.2.3",
+    "@tensorflow/tfjs": "^4.22.0",
+    "axios": "^1.20.0",
+    "canvas": "^3.2.3",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.0",
+    "express": "^5.2.1",
+    "express-validator": "^7.3.2",
+    "helmet": "^8.3.0",
+    "morgan": "^1.12.1",
+    "mysql2": "^3.24.4",
+    "socket.io": "^4.8.3"
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "configurations": [
+    {
+      "name": "windows-gcc-x64",
+      "includePath": [
+        "${workspaceFolder}/**",
+        "${workspaceFolder}/firmware/src",
+        "${workspaceFolder}/firmware/include",
+        "${workspaceFolder}/firmware/lib",
+        "${workspaceFolder}/firmware/.pio/libdeps/esp32dev/**",
+        "${env:USERPROFILE}/.platformio/packages/framework-arduinoespressif32/cores/esp32",
+        "${env:USERPROFILE}/.platformio/packages/framework-arduinoespressif32/variants/esp32",
+        "${env:USERPROFILE}/.platformio/packages/framework-arduinoespressif32/libraries/**/src",
+        "${env:USERPROFILE}/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/**",
+        "${env:USERPROFILE}/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/dio_qspi/include/**",
+        "${env:USERPROFILE}/.platformio/packages/toolchain-xtensa-esp32/xtensa-esp32-elf/include/**"
+      ],
+      "defines": [
+        "ARDUINO=10812",
+        "ESP32",
+        "ESP_PLATFORM",
+        "CORE_DEBUG_LEVEL=3",
+        "GRIDZERO_VERSION=\"1.0.0\"",
+        "ARDUINO_ESP32_DEV",
+        "ARDUINO_ARCH_ESP32",
+        "BOARD_HAS_PSRAM",
+        "CAMERA_MODEL_AI_THINKER",
+        "F_CPU=240000000L"
+      ],
+      "compilerPath": "${env:USERPROFILE}/.platformio/packages/toolchain-xtensa-esp32/bin/xtensa-esp32-elf-gcc.exe",
+      "cStandard": "gnu11",
+      "cppStandard": "gnu++17",
+      "intelliSenseMode": "windows-gcc-x64",
+      "compileCommands": "${workspaceFolder}/firmware/compile_commands.json"
+    }
+  ],
+  "version": 4
+}
