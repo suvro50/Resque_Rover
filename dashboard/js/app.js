@@ -416,8 +416,17 @@ function updateThermalCard(thermal) {
 }
 
 // ── Update Gas Card ──────────────────────────────────────────────────────────
-function updateGasCard(gas) {
+let lastDirectGasMs = 0;
+
+function updateGasCard(gas, isDirect = false) {
     if (!gas) return;
+
+    if (isDirect) {
+        lastDirectGasMs = Date.now();
+    } else if (Date.now() - lastDirectGasMs < 2000) {
+        return;
+    }
+
     const co      = parseFloat(gas.co_ppm) || 0;
     const methane = parseFloat(gas.methane_ppm) || 0;
     const lpg     = parseFloat(gas.lpg_ppm) || 0;
@@ -622,6 +631,33 @@ function initSensorPolling() {
             // Thermal sensor processing
             if (d.thermal_ambient !== undefined) {
                 updateThermalCard({ ambient: d.thermal_ambient, object: d.thermal_object }, true);
+            }
+            
+            // Gas sensor processing
+            if (d.gas !== undefined) {
+                const raw = d.gas;
+                let co = 0, ch4 = 0, lpg = 0;
+                let hazard = 'safe';
+                
+                if (raw > 200) { // arbitrary baseline
+                    const excess = raw - 200;
+                    co = excess * 0.05;
+                    ch4 = excess * 0.02;
+                    lpg = excess * 0.01;
+                }
+                
+                if (co > 50) hazard = 'critical';
+                else if (co > 25) hazard = 'high';
+                else if (co > 9) hazard = 'moderate';
+                else if (co > 0) hazard = 'low';
+
+                updateGasCard({
+                    co_ppm: co,
+                    methane_ppm: ch4,
+                    lpg_ppm: lpg,
+                    raw_adc: raw,
+                    hazard: hazard
+                }, true);
             }
         } catch (_) {
             // Silently ignore — Socket.IO data still updates the card
