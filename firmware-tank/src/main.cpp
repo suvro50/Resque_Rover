@@ -305,8 +305,8 @@ void setup() {
     Serial.println("  Rear  sensor : TRIG=G27 ECHO=G14  stop < 15cm");
     Serial.println("  Buzzer       : G13");
 
-    // Init I2C and Thermal Sensor (SDA=4, SCL=5)
-    Wire.begin(4, 5);
+    // Init I2C and Thermal Sensor (SDA=4, SCL=15)
+    Wire.begin(4, 15);
     delay(250); // Wait for sensor to boot up
 
     if (!mlx.begin()) {
