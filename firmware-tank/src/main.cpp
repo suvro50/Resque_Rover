@@ -40,6 +40,7 @@ const uint8_t FRONT_ECHO = 26;
 const uint8_t REAR_TRIG  = 27;
 const uint8_t REAR_ECHO  = 14;
 const uint8_t BUZZER_PIN = 13;
+const uint8_t MQ9_PIN    = 34;
 
 // -- Safety Thresholds (cm) ---------------------------------------------------
 const float FRONT_STOP_CM = 13.0f;   // stop FORWARD  if object < 13 cm
@@ -75,6 +76,7 @@ Adafruit_MLX90614 mlx = Adafruit_MLX90614();
 bool mlxReady = false;
 float tempAmbient = 0.0f;
 float tempObject  = 0.0f;
+int   gasValue    = 0;
 
 // -- Embedded Web UI ----------------------------------------------------------
 const char PAGE[] PROGMEM = R"rawliteral(
@@ -99,7 +101,7 @@ button.stop{background:#b22;font-size:20px;font-weight:bold}
 <body>
 <h1>Rescue Tank</h1>
 <div id="st">Ready</div>
-<div id="sens">Front: -- cm &nbsp;|&nbsp; Rear: -- cm</div>
+<div id="sens" style="line-height:1.4;">Front: -- cm &nbsp;|&nbsp; Rear: -- cm<br>Temp: -- &deg;C &nbsp;|&nbsp; Gas: --</div>
 <div class="pad">
   <button data-c="FL">&#8598;</button>
   <button data-c="F">&#9650;</button>
@@ -139,7 +141,9 @@ setInterval(()=>{
   fetch('/sensors',{cache:'no-store'}).then(r=>r.json()).then(d=>{
     var f=d.front<900?d.front.toFixed(1)+'cm':'--';
     var r=d.rear<900?d.rear.toFixed(1)+'cm':'--';
-    sens.textContent='Front: '+f+' | Rear: '+r;
+    var t=d.thermal_object>0?d.thermal_object.toFixed(1)+'&deg;C':'--';
+    var g=d.gas||0;
+    sens.innerHTML='Front: '+f+' &nbsp;|&nbsp; Rear: '+r+'<br>Temp: '+t+' &nbsp;|&nbsp; Gas: '+g;
   }).catch(()=>{});
 },500);
 </script>
@@ -196,6 +200,9 @@ void updateSensors() {
         tempAmbient = mlx.readAmbientTempC();
         tempObject  = mlx.readObjectTempC();
     }
+    
+    // Read Gas Sensor (0-4095)
+    gasValue = analogRead(MQ9_PIN);
 
     // If currently moving into an obstacle, stop immediately
     if (moving) {
@@ -242,7 +249,8 @@ void handleSensors() {
     String j = "{\"front\":" + String(frontDist,1) + 
                ",\"rear\":" + String(rearDist,1) + 
                ",\"thermal_ambient\":" + String(tempAmbient,1) +
-               ",\"thermal_object\":" + String(tempObject,1) + "}";
+               ",\"thermal_object\":" + String(tempObject,1) + 
+               ",\"gas\":" + String(gasValue) + "}";
     server.send(200, "application/json", j);
 }
 
@@ -291,6 +299,7 @@ void setup() {
     pinMode(FRONT_TRIG, OUTPUT); pinMode(FRONT_ECHO, INPUT);
     pinMode(REAR_TRIG,  OUTPUT); pinMode(REAR_ECHO,  INPUT);
     pinMode(BUZZER_PIN, OUTPUT);
+    pinMode(MQ9_PIN, INPUT);
     digitalWrite(FRONT_TRIG, LOW);
     digitalWrite(REAR_TRIG,  LOW);
     digitalWrite(BUZZER_PIN, LOW);
