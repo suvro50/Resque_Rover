@@ -30,6 +30,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initWebSocket();
     initChart();
     initKeyboardControls();
+    initSensorPolling();
+    initCameraStream();
     loadInitialData();
     console.log('🚀 GridZero Dashboard initialized');
 });
