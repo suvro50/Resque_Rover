@@ -40,7 +40,7 @@ const uint8_t FRONT_ECHO = 26;
 const uint8_t REAR_TRIG  = 27;
 const uint8_t REAR_ECHO  = 14;
 const uint8_t BUZZER_PIN = 13;
-const uint8_t MQ9_PIN    = 34;
+const uint8_t MQ9_PIN    = 35;
 
 // -- Safety Thresholds (cm) ---------------------------------------------------
 const float FRONT_STOP_CM = 13.0f;   // stop FORWARD  if object < 13 cm
