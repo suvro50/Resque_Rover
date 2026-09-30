@@ -372,51 +372,7 @@ async function loadInitialData() {
     }
 }
 
-// ── Update Thermal Card ──────────────────────────────────────────────────────
-function updateThermalCard(thermal) {
-    if (!thermal) return;
-    const obj = parseFloat(thermal.object) || 0;
-    const amb = parseFloat(thermal.ambient) || 0;
-    const delta = (obj - amb).toFixed(2);
-
-    document.getElementById('thermalAmbient').textContent = `${amb.toFixed(1)} °C`;
-    document.getElementById('thermalObject').textContent = `${obj.toFixed(1)} °C`;
-    document.getElementById('thermalDelta').textContent = `${delta} °C`;
-    document.getElementById('thermalObjectTemp').textContent = obj.toFixed(1);
-
-    // Update gauge (0-50°C range)
-    const circumference = 314;
-    const percentage = Math.min(obj / 50, 1);
-    const offset = circumference - (percentage * circumference);
-    const gauge = document.getElementById('thermalGauge');
-    gauge.setAttribute('stroke-dashoffset', offset);
-
-    // Color based on temperature
-    const tempVal = document.getElementById('thermalObjectTemp');
-    if (obj >= 35 && delta >= 5) {
-        gauge.setAttribute('stroke', 'var(--accent-red)');
-        tempVal.style.color = 'var(--accent-red)';
-        document.getElementById('thermalBodyHeat').textContent = '🔴 YES — Possible Victim!';
-        document.getElementById('thermalBodyHeat').style.color = 'var(--accent-red)';
-        document.getElementById('thermalStatus').textContent = 'BODY HEAT!';
-        document.getElementById('thermalStatus').className = 'card-status danger';
-    } else if (obj >= 30) {
-        gauge.setAttribute('stroke', 'var(--accent-yellow)');
-        tempVal.style.color = 'var(--accent-yellow)';
-        document.getElementById('thermalBodyHeat').textContent = '🟡 Maybe';
-        document.getElementById('thermalBodyHeat').style.color = 'var(--accent-yellow)';
-        document.getElementById('thermalStatus').textContent = 'WARM';
-        document.getElementById('thermalStatus').className = 'card-status warning';
-    } else {
-        gauge.setAttribute('stroke', 'var(--accent-cyan)');
-        tempVal.style.color = 'var(--accent-cyan)';
-        document.getElementById('thermalBodyHeat').textContent = '🟢 No';
-        document.getElementById('thermalBodyHeat').style.color = 'var(--accent-green)';
-        document.getElementById('thermalStatus').textContent = 'NORMAL';
-        document.getElementById('thermalStatus').className = 'card-status active';
-    }
-}
-
+// (Thermal Card function moved to line 567)
 // ── Update Gas Card ──────────────────────────────────────────────────────────
 let lastDirectGasMs = 0;
 
@@ -622,7 +578,7 @@ function initSensorPolling() {
         try {
             const res = await fetch(`http://${ip}/sensors`, {
                 cache: 'no-store',
-                signal: AbortSignal.timeout(400)
+                signal: AbortSignal.timeout(2000)
             });
             if (!res.ok) return;
             const d = await res.json();
